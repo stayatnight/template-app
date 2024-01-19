@@ -3,7 +3,7 @@
   "configurations": [
     {
       "type": "espidf",
-      "name": "Launch",
+      "name": "Launch-name",
       "request": "launch"
     }
   ]

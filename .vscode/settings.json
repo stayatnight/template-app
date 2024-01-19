@@ -3,13 +3,14 @@
   "idf.adapterTargetName": "esp32c3",
   "idf.portWin": "COM19",
   "idf.flashBaudRate": "1200000",
-  "idf.flashType": "UART",
+  "idf.flashType": "JTAG",
   "cmake.configureOnOpen": false,
   "idf.espIdfPathWin": "e:\\idf\\501\\esp-idf",
   "idf.openOcdConfigs": [
-    "board/esp32c3-ftdi.cfg"
+    "board/esp32c3-builtin.cfg"
   ],
   "files.associations": {
     "freertos.h": "c"
-  }
+  },
+  "idf.toolsPathWin": "e:\\idf\\501\\tool"
 }

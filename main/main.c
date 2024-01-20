@@ -29,7 +29,7 @@ static const char* TAG              = "test";
 // #define task_creat_pro 6
 // #define task_other_state 7
 // #define task_idle_fuc 8
-#define task_delete 9
+#define task_delete_ 9
 char      down_buf[32];
 uint32_t* number;
 size_t    sz = 32;
@@ -146,6 +146,18 @@ void task_idlehook_printf(void* pv)
             vTaskSuspend(NULL);  // 计数1000然后挂起
     }
 }
+void task_delete(void* pv)
+{
+    // xTaskCreate(task3, "task1", 4096, NULL, 1, NULL);
+    char* task_name;
+  //  int i=0;
+    task_name = (char*)pv;
+    for (;;) {
+        // vPrintString(task_name);
+        ESP_LOGI(TAG, "%s", task_name);
+        vTaskDelay(10 / portTICK_PERIOD_MS);  // 此函数将使得任务处于阻塞状态
+    }
+}
 void app_main(void)
 {
 // 不带句柄
@@ -224,8 +236,10 @@ void app_main(void)
     }
     //  vTaskSetIdleTaskHookFunction( vApplicationIdleHook );
 #endif
-#ifdef task_delete 
-
+#ifdef task_delete_ 
+ static const char* pv_task_delete = "task delete is running";
+TaskHandle_t task_delete_handle;
+xTaskCreate(task_delete,"task_delete",4096,(void*)pv_task_delete,2,&task_delete_handle);
+vTaskDelete(task_delete_handle);
 #endif
-
 }

@@ -15,6 +15,8 @@
 #include "esp_log.h"
 #include "freertos/queue.h"
 #include "driver/gpio.h"
+#include "esp_app_trace.h"
+#include "string.h"
 #define btn_pin GPIO_NUM_9
 #define rgb_pin GPIO_NUM_8
 volatile uint32_t  ulIdleCycleCount = 0UL;
@@ -23,10 +25,14 @@ static const char* TAG              = "test";
 // #define task_creat_hundle 2
 // #define task_creat_pv  3
 // #define task_gpio9_btn 4
-// #define task_creat_from1 5
+//#define task_creat_from1 5
 // #define task_creat_pro 6
 // #define task_other_state 7
-#define task_idle_fuc 8
+// #define task_idle_fuc 8
+#define task_delete 9
+char      down_buf[32];
+uint32_t* number;
+size_t    sz = 32;
 void task1(void* pv)
 {
     while (1) {
@@ -57,7 +63,7 @@ void task3(void* pv)
 }
 void task4(void* pv)
 {
-    xTaskCreate(task3, "task1", 4096, NULL, 1, NULL);
+    // xTaskCreate(task3, "task1", 4096, NULL, 1, NULL);
     char* task_name;
     task_name = (char*)pv;
     for (;;) {
@@ -149,7 +155,6 @@ void app_main(void)
 #endif
 #ifdef task_creat_hundle
     // 带句柄
-    TaskHandle_t task1_handle;
     TaskHandle_t task2_handle;
     xTaskCreate(task1, "task1", 4096, NULL, 1, &task1_handle);
     xTaskCreate(task2, "task2", 4096, NULL, 1, &task2_handle);
@@ -206,8 +211,21 @@ void app_main(void)
     // xTaskCreate(vApplicationIdleHook,'')
     TaskHandle_t task_idleprintf_handle;
     xTaskCreate(task_idlehook_printf, "task_idle", 4096, NULL, 2, &task_idleprintf_handle);
-    vTaskPrioritySet(task_idleprintf_handle,1);//修改优先级
-    
+    //  vTaskPrioritySet(task_idleprintf_handle,1);//修改优先级
+    // esp_log_set_vprintf( esp_apptrace_vprintf ) ;
+    //  esp_log_set_vprintf( vprintf );
+
+    /* config down buffer */
+    char      buf[] = "Hello World!";
+    esp_err_t res   = esp_apptrace_write(ESP_APPTRACE_DEST_TRAX, buf, strlen(buf), ESP_APPTRACE_TMO_INFINITE);
+    if (res != ESP_OK) {
+        ESP_LOGE(TAG, "Failed to write data to host!");
+        //  return res;
+    }
     //  vTaskSetIdleTaskHookFunction( vApplicationIdleHook );
 #endif
+#ifdef task_delete 
+
+#endif
+
 }

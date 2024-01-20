@@ -6,7 +6,7 @@ flushregs
 
 tb heap_trace_start
 commands
-mon esp sysview start file://d:/code/esp32test/template-app/trace/htrace_1705669245793.svdat
+mon esp sysview start file://d:/code/esp32test/template-app/trace/htrace_1705671534465.svdat
 c
 end
 

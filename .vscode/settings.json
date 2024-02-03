@@ -5,12 +5,13 @@
   "idf.flashBaudRate": "1200000",
   "idf.flashType": "JTAG",
   "cmake.configureOnOpen": false,
-  "idf.espIdfPathWin": "e:\\idf\\501\\esp-idf",
+  "idf.espIdfPathWin": "g:\\idf\\501\\esp-idf",
   "idf.openOcdConfigs": [
     "board/esp32c3-builtin.cfg"
   ],
   "files.associations": {
-    "freertos.h": "c"
+    "freertos.h": "c",
+    "freertosconfig.h": "c"
   },
-  "idf.toolsPathWin": "e:\\idf\\501\\tool"
+  "idf.toolsPathWin": "g:\\idf\\501\\tool"
 }

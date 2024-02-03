@@ -37,3 +37,17 @@ c
 #### 启动systemview 
 telnet localhost 4444
 esp sysview start file://pro-cpu.SVDat file://app-cpu.SVDat
+![Alt text](22618746b4cc804a749076fdb57d711.png)
+这种错误可能的原因是？
+芯片没有开启trace的功能
+下面是开启的方法
+![Alt text](image-2.png)
+![Alt text](1706952471541.png)
+#### 临界区调用出现bug
+
+#### 使用互斥出现的潜在问题
+一优先级翻转
+二死锁
+#### 看门人任务是为了什么？
+看门人任务是为了解决这些不合适的问题
+#### 函数命名和

@@ -10,9 +10,9 @@
  */
 #include <stdio.h>
 #include <freertos/FreeRTOS.h>
-#include<freertos/FreeRTOSConfig.h>
-//#include <freertos/task.h>
-#include"freertos/semphr.h"
+#include <freertos/FreeRTOSConfig.h>
+// #include <freertos/task.h>
+#include "freertos/semphr.h"
 #include <freertos/timers.h>
 #include "esp_log.h"
 #include "freertos/queue.h"
@@ -20,9 +20,10 @@
 #include "esp_app_trace.h"
 #include "string.h"
 #include <freertos/portmacro.h>
-#include"test_queue.h"
+#include "test_queue.h"
 #include <freertos/projdefs.h>
-//#include <portmacro.h>
+#include"config.h"
+// #include <portmacro.h>
 #define btn_pin GPIO_NUM_9
 #define rgb_pin GPIO_NUM_8
 volatile uint32_t  ulIdleCycleCount = 0UL;
@@ -34,19 +35,22 @@ static const char* TAG              = "test";
 // #define task_creat_from1 5
 // #define task_creat_pro 6
 // #define task_other_state 7
-// #define task_idle_fuc 8 
-//#define task_delete_ 9
-//#define resource_critical 10
-//#define resource_mutex 11
-//#define resource_gate_keeper 12
-//#define resource 10
-//#define resource 10
-#define queue_test 15
-char      down_buf[32];
-uint32_t* number;
-size_t    sz = 32;
+// #define task_idle_fuc 8
+// #define task_delete_ 9
+// #define resource_critical 10
+// #define resource_mutex 11
+// #define resource_gate_keeper 12
+// #define resource 10
+// #define resource 10
+//#define queue_test 15
+//#define softTimer  16
+//#define timer_test 1 
+
+char              down_buf[32];
+uint32_t*         number;
+size_t            sz = 32;
 SemaphoreHandle_t xMutex;
-void      task1(void* pv)
+void              task1(void* pv)
 {
     while (1) {
         // 无限循环不带返回值的函数
@@ -149,19 +153,32 @@ void task_idlehook_printf(void* pv)
     for (;;) {
         i++;
         b++;
+        // 执行101次循环
         for (b = 0; b <= 100; b++) {
+            // 每次循环延迟10毫秒
             vTaskDelay(10 / portTICK_PERIOD_MS);
+            // 打印空闲钩子函数的执行次数
             ESP_LOGI(TAG, "idle hook is %lu", ulIdleCycleCount);
         }
+        // 打印hello task3
         ESP_LOGI(TAG, "hello task3");
+        // 相对延迟从vTask执行时刻开始计算，没有计算前面的一段时间，而vTaskDelayUntil是可以计算的
         vTaskDelayUntil(
             &xLastWakeTime,
             xFrequency);  // 相对延迟从vtask执行时刻开始计算,没有计算前面的一段时间，而vTaskDelayUtill是可以计算的
+        // 计数达到1000后挂起任务
         if (i == 1000)
             vTaskSuspend(NULL);  // 计数1000然后挂起
     }
 }
 
+/**
+ * @brief 删除任务
+ *
+ * 根据传入的参数，删除一个任务。
+ *
+ * @param pv 指向任务名称的指针
+ */
 void task_delete(void* pv)
 {
     // xTaskCreate(task3, "task1", 4096, NULL, 1, NULL);
@@ -175,103 +192,133 @@ void task_delete(void* pv)
         vTaskDelay(10 / portTICK_PERIOD_MS);  // 此函数将使得任务处于阻塞状态
     }
 }
-
 void task_cirtical_suspend(void* pv)
 {
-
-     char* task_name;
+    char* task_name;
     task_name = (char*)pv;
     for (;;) {
-     //   taskENTER_CRITICAL();  
-       	vTaskEndScheduler();//挂起进程调度器的方式来解决问题
+        //   taskENTER_CRITICAL();
+        vTaskEndScheduler();  // 挂起进程调度器的方式来解决问题
         // vPrintString(task_name);
         ESP_LOGI(TAG, "%s", task_name);
         vTaskDelay(10 / portTICK_PERIOD_MS);  // 此函数将使得任务处于阻塞状态
-    //        taskEXIT_CRITICAL();
+                                              //        taskEXIT_CRITICAL();
         vTaskStartScheduler();
     }
-
 }
 
+/**
+ * @brief 任务1的互斥锁函数
+ *
+ * 使用互斥锁来保护共享资源，确保任务独占访问。
+ *
+ * @param pv 指向任务名称的指针
+ */
 void task1_mutex(void* pv)
 {
-
-     char* task_name;
+    char* task_name;
     task_name = (char*)pv;
     for (;;) {
-     //   taskENTER_CRITICAL();
-      xSemaphoreTake(xMutex,portMAX_DELAY);{
-        // vPrintString(task_name);
-        ESP_LOGI(TAG, "%s", task_name);//本质上就是使用之前加上锁，保证独占，使用之后让出资源，实际上和之前的写法一样，也是一个临界区
-        vTaskDelay(10 / portTICK_PERIOD_MS);  // 此函数将使得任务处于阻塞状态
-    //        taskEXIT_CRITICAL();
-}
-xSemaphoreGive(xMutex);
+        //   taskENTER_CRITICAL();
+        xSemaphoreTake(xMutex, portMAX_DELAY);
+        {
+            // vPrintString(task_name);
+            ESP_LOGI(
+                TAG, "%s",
+                task_name);  // 本质上就是使用之前加上锁，保证独占，使用之后让出资源，实际上和之前的写法一样，也是一个临界区
+            vTaskDelay(10 / portTICK_PERIOD_MS);  // 此函数将使得任务处于阻塞状态
+            //        taskEXIT_CRITICAL();
+        }
+        xSemaphoreGive(xMutex);
     }
-
 }
 
+/**
+ * @brief 任务2的互斥锁函数
+ *
+ * 该函数作为任务2的入口函数，使用互斥锁保护共享资源。
+ *
+ * @param pv 指向任务名称的指针
+ */
 void task2_mutex(void* pv)
 {
-     char* task_name;
+    char* task_name;
     task_name = (char*)pv;
     for (;;) {
-     //   taskENTER_CRITICAL();
-      xSemaphoreTake(xMutex,portMAX_DELAY);{
-        // vPrintString(task_name);
-        ESP_LOGI(TAG, "%s", task_name);
-        vTaskDelay(10 / portTICK_PERIOD_MS);  // 此函数将使得任务处于阻塞状态
-    //        taskEXIT_CRITICAL();
-}
-xSemaphoreGive(xMutex);
+        //   taskENTER_CRITICAL();
+        xSemaphoreTake(xMutex, portMAX_DELAY);
+        {
+            // vPrintString(task_name);
+            ESP_LOGI(TAG, "%s", task_name);
+            vTaskDelay(10 / portTICK_PERIOD_MS);  // 此函数将使得任务处于阻塞状态
+            //        taskEXIT_CRITICAL();
+        }
+        xSemaphoreGive(xMutex);
     }
-
 }
+/**
+ * @brief 任务守护函数
+ *
+ * 这是一个任务守护函数，用于管理任务的执行。
+ */
 void task_gate_keeper()
 {
-
-
-
+    int16_t x;
 }
-static void prvNewPrintString( const char *pcString )
+/**
+ * @brief 打印字符串
+ *
+ * 在互斥锁保护下打印给定的字符串。
+ *
+ * @param pcString 要打印的字符串
+ */
+static void prvNewPrintString(const char* pcString)
 {
-	/*互斥锁是在调度器启动之前创建的，所以在任务执行时已经存在尝试获取互斥锁，如果互斥锁不能立即可用，则无限期阻塞以等待它。对xSemaphoreTake()的调用只有在成功获得互斥锁时才会返回。所以不需要检查函数的返回值。如果使用了任何其他延迟周期，那么代码必须在访问共享资源(在本例中是标准输出)之前检查xSemaphorerake()是否返回pdTRUE。正如本书前面提到的，不建议在生产代码中使用无限期超时。*/
- 	xSemaphoreTake( xMutex, portMAX_DELAY );
- 	{
-	/*只有成功获得互斥锁后，才会执行下面的行。现在可以自由访问标准输出，因为在任何时候只有一个任务可以拥有互斥锁。*/
-	 printf( "%s", pcString );
-     fflush( stdout );
-        
-    /* 互斥锁必须返回! */
- 	}
- 	xSemaphoreGive( xMutex );
+    /*互斥锁是在调度器启动之前创建的，所以在任务执行时已经存在尝试获取互斥锁，如果互斥锁不能立即可用，则无限期阻塞以等待它。对xSemaphoreTake()的调用只有在成功获得互斥锁时才会返回。所以不需要检查函数的返回值。如果使用了任何其他延迟周期，那么代码必须在访问共享资源(在本例中是标准输出)之前检查xSemaphorerake()是否返回pdTRUE。正如本书前面提到的，不建议在生产代码中使用无限期超时。*/
+    xSemaphoreTake(xMutex, portMAX_DELAY);
+    {
+        /*只有成功获得互斥锁后，才会执行下面的行。现在可以自由访问标准输出，因为在任何时候只有一个任务可以拥有互斥锁。*/
+        printf("%s", pcString);
+        fflush(stdout);
+
+        /* 互斥锁必须返回! */
+    }
+    xSemaphoreGive(xMutex);
 }
-static void prvPrintTask( void *pvParameters )
+/**
+ * @brief 打印任务函数
+ *
+ * 该函数是一个打印任务，用于无限循环地打印传入的字符串，并在每次打印后等待一段时间。
+ *
+ * @param pvParameters 任务参数指针
+ */
+static void prvPrintTask(void* pvParameters)
 {
-char *pcStringToPrint;
-const TickType_t xMaxBlockTimeTicks = 0x20;
- 	/*创建该任务的两个实例。任务打印的字符串“使用任务的参数传递给任务”。参数被转换为所需的类型。*/
- 	pcStringToPrint = ( char * ) pvParameters;
-    
- 	for( ;; )
- 	{
- 		/*使用新定义的函数输出字符串。*/
- 		prvNewPrintString( pcStringToPrint );
-		/*等待一个伪随机时间。请注意rand()不一定是可重入的，但在这种情况下，它实际上并不重要，因为代码并不关心返回的值是什么。在更安全的应用程序中，应该使用已知可重入的rand()版本——或者应该在临界区段保护rand()的调用。*/
- 		 vTaskDelay( ( rand() % xMaxBlockTimeTicks ) );
- 	} 
+    char*            pcStringToPrint;
+    const TickType_t xMaxBlockTimeTicks = 0x20;
+    /*创建该任务的两个实例。任务打印的字符串“使用任务的参数传递给任务”。参数被转换为所需的类型。*/
+    pcStringToPrint = (char*)pvParameters;
+
+    for (;;) {
+        /*使用新定义的函数输出字符串。*/
+        prvNewPrintString(pcStringToPrint);
+        /*等待一个伪随机时间。请注意rand()不一定是可重入的，但在这种情况下，它实际上并不重要，因为代码并不关心返回的值是什么。在更安全的应用程序中，应该使用已知可重入的rand()版本——或者应该在临界区段保护rand()的调用。*/
+        vTaskDelay((rand() % xMaxBlockTimeTicks));
+    }
 }
-static void task_queue_recive(void *pv)
+static void task_queue_recive(void* pv) {}
+/**
+ * @brief 发送任务
+ *
+ * 这是一个静态函数，用于执行发送任务。
+ */
+static void vSendTask()
 {
-
-
+    int32_t    valueToSend;
+    BaseType_t xStatus;
 }
-static void task_queue_send(void* pv)
-{
-
-
-}
-void app_main(void)
+static void task_queue_send(void* pv) {}
+void        app_main(void)
 {
 // 不带句柄
 #ifdef task_creat_null
@@ -355,50 +402,46 @@ void app_main(void)
     xTaskCreate(task_delete, "task_delete", 4096, (void*)pv_task_delete, 2, &task_delete_handle);
     vTaskDelete(task_delete_handle);
 #endif
-
-
-#ifdef resource_critical //临界区
-static const char* task_cirtical_ = "task delete is running";
-xTaskCreate(task_cirtical_suspend,"task_cirtical_one",4096,(void*)task_cirtical_,2,NULL);
-//xTaskCreate(task_cirtical,"task_cirtical_two",4096,(void*)task_cirtical,2,NULL);
+#ifdef resource_critical  // 临界区
+    static const char* task_cirtical_ = "task delete is running";
+    xTaskCreate(task_cirtical_suspend, "task_cirtical_one", 4096, (void*)task_cirtical_, 2, NULL);
+// xTaskCreate(task_cirtical,"task_cirtical_two",4096,(void*)task_cirtical,2,NULL);
 #endif
-
 #ifdef resource_mutex
-
-xMutex=xSemaphoreCreateMutex();
-if (xMutex!=NULL)
-{
-     static const char* task_mutex_1 = "--------------\r\n";
-     static const char* task_mutex_2 = "**************\r\n";
-xTaskCreate(prvPrintTask,"taskMutex1",4096,(void*)task_mutex_1,1,NULL);
-//"--------------\r\n"
-xTaskCreate(prvPrintTask,"taskMutex2",4096,(void*)task_mutex_2,2,NULL);
-//"**************\r\n"
-//vTaskStartScheduler();
-}
+    xMutex = xSemaphoreCreateMutex();
+    if (xMutex != NULL) {
+        static const char* task_mutex_1 = "--------------\r\n";
+        static const char* task_mutex_2 = "**************\r\n";
+        xTaskCreate(prvPrintTask, "taskMutex1", 4096, (void*)task_mutex_1, 1, NULL);
+        //"--------------\r\n"
+        xTaskCreate(prvPrintTask, "taskMutex2", 4096, (void*)task_mutex_2, 2, NULL);
+        //"**************\r\n"
+        // vTaskStartScheduler();
+    }
 #endif
-
 #ifdef resource_gate_keeper
-
 #endif
 #ifdef queue_test
-QueueHandle_t Que_testSent;
-Que_testSent=xQueueCreate(10,sizeof(testQueue));
-//Que_testRecive=xQueueCreate(10,sizeof(testQueue));
-testQueue   Que_test,Que_rec;
-Que_test.a=10;
-Que_test.b='J';
-if (Que_testSent!=0)
-{
-  xQueueSend(Que_testSent,&Que_test,(TickType_t*)0);
-}
-if (Que_testSent!=0)
-{
-    xQueueReceive(Que_testSent,&Que_rec,(TickType_t*)0);
-    ESP_LOGI(TAG,"%d",Que_rec.a);
-    ESP_LOGI(TAG,"%c",Que_rec.b);
-}
-//在main函数中的不同位置进行发送
+    QueueHandle_t Que_testSent;
+    Que_testSent = xQueueCreate(10, sizeof(testQueue));
+    // Que_testRecive=xQueueCreate(10,sizeof(testQueue));
+    testQueue Que_test, Que_rec;
+    Que_test.a = 10;
+    Que_test.b = 'J';
+    if (Que_testSent != 0) {
+        xQueueSend(Que_testSent, &Que_test, (TickType_t*)0);
+    }
+    if (Que_testSent != 0) {
+        xQueueReceive(Que_testSent, &Que_rec, (TickType_t*)0);
+        ESP_LOGI(TAG, "%d", Que_rec.a);
+        ESP_LOGI(TAG, "%c", Que_rec.b);
+    }
+// 在main函数中的不同位置进行发送
 #endif
-
+//#ifdef softTimer
+//#endif
+//#ifdef task_delay
+#if defined(USE_TIMER_TEST)&&(USE_TIMER_TEST==1)
+//xTimerCreate("timer", 100, pdTRUE, NULL, timer_callback);
+#endif
 }

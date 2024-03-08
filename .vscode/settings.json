@@ -13,5 +13,6 @@
     "freertos.h": "c",
     "freertosconfig.h": "c"
   },
-  "idf.toolsPathWin": "g:\\idf\\501\\tool"
+  "idf.toolsPathWin": "g:\\idf\\501\\tool",
+  "search.useIgnoreFiles": false
 }
